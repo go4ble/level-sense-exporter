@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
 // play.sbt.routes.RoutesKeys.routesImport += "io.github.go4ble.binders._"
 
 dockerBaseImage := "openjdk:11"
-dockerRepository := Some("go4ble")
+dockerRepository := Some("ghcr.io/go4ble")
 dockerExposedPorts := Seq(9000)
 dockerEnvVars := Map(
   "LSE_POLLING_PERIOD_MINUTES" -> "2",
