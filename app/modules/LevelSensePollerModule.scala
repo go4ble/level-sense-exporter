@@ -37,21 +37,16 @@ object LevelSensePollerModule {
     private val SessionKeyHeaderName = "SessionKey"
     private val MetricNamePrefix = "lse_"
 
-    private val LabelGetSessionKey = "get_session_key"
-    private val LabelGetDeviceList = "get_device_list"
-    private val LabelGetAlarmConfig = "get_alarm_config"
+    private val LabelNameRequest = "request_name"
+    private val LabelValueGetSessionKey = "get_session_key"
+    private val LabelValueGetDeviceList = "get_device_list"
+    private val LabelValueGetAlarmConfig = "get_alarm_config"
 
     private val collectors = mutable.HashMap[String, Gauge]()
     private lazy val pollCount = Counter.build(MetricNamePrefix + "poll_count", "Poll Count").register()
     private lazy val lastPolledAt = Gauge.build(MetricNamePrefix + "last_polled_at", "Last Polled At").register()
-    private lazy val requestCount = Counter
-      .build(MetricNamePrefix + "request_count", "Request Count")
-      .labelNames(LabelGetSessionKey, LabelGetDeviceList, LabelGetAlarmConfig)
-      .register()
-    private lazy val requestDuration = Summary
-      .build(MetricNamePrefix + "request_duration", "Request Duration")
-      .labelNames(LabelGetSessionKey, LabelGetDeviceList, LabelGetAlarmConfig)
-      .register()
+    private lazy val requestCount = Counter.build(MetricNamePrefix + "request_count", "Request Count").labelNames(LabelNameRequest).register()
+    private lazy val requestDuration = Summary.build(MetricNamePrefix + "request_duration", "Request Duration").labelNames(LabelNameRequest).register()
 
     logger.info(s"Starting LevelSensePoller at interval of $PollingPeriod")
 
@@ -71,21 +66,21 @@ object LevelSensePollerModule {
     )
 
     private def getSessionKey: Future[SessionKey] = cache.getOrElseUpdate(AuthCacheKey, CacheExpiration) {
-      val requestTimer = requestDuration.labels(LabelGetSessionKey).startTimer()
+      val requestTimer = requestDuration.labels(LabelValueGetSessionKey).startTimer()
       wsClient
         .url(LevelSenseBaseUrl + "/v1/login")
         .withRequestTimeout(Timeout / 3)
         .post(Json.toJson(Login(Username, Password)))
         .map { response =>
           assert(response.status == Status.OK)
-          requestCount.labels(LabelGetSessionKey).inc()
+          requestCount.labels(LabelValueGetSessionKey).inc()
           requestTimer.observeDuration()
           response.json.as[SessionKey].ensuring(_.success)
         }
     }
 
     private def getDeviceList(sessionKey: SessionKey): Future[DeviceList] = cache.getOrElseUpdate(DeviceListCacheKey, CacheExpiration) {
-      val requestTimer = requestDuration.labels(LabelGetDeviceList).startTimer()
+      val requestTimer = requestDuration.labels(LabelValueGetDeviceList).startTimer()
       wsClient
         .url(LevelSenseBaseUrl + "/v1/getDeviceList")
         .withRequestTimeout(Timeout / 3)
@@ -93,14 +88,14 @@ object LevelSensePollerModule {
         .get()
         .map { response =>
           assert(response.status == Status.OK)
-          requestCount.labels(LabelGetDeviceList).inc()
+          requestCount.labels(LabelValueGetDeviceList).inc()
           requestTimer.observeDuration()
           response.json.as[DeviceList].ensuring(_.success)
         }
     }
 
     private def getAlarmConfig(sessionKey: SessionKey, deviceId: String): Future[AlarmConfig] = {
-      val requestTimer = requestDuration.labels(LabelGetAlarmConfig).startTimer()
+      val requestTimer = requestDuration.labels(LabelValueGetAlarmConfig).startTimer()
       wsClient
         .url(LevelSenseBaseUrl + "/v2/getAlarmConfig")
         .withRequestTimeout(Timeout / 3)
@@ -108,7 +103,7 @@ object LevelSensePollerModule {
         .post(Json.obj("id" -> deviceId))
         .map { response =>
           assert(response.status == Status.OK)
-          requestCount.labels(LabelGetAlarmConfig).inc()
+          requestCount.labels(LabelValueGetAlarmConfig).inc()
           requestTimer.observeDuration()
           response.json
             .as[AlarmConfig]
