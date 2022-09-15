@@ -46,7 +46,8 @@ object LevelSensePollerModule {
     private lazy val pollCount = Counter.build(MetricNamePrefix + "poll_count", "Poll Count").register()
     private lazy val lastPolledAt = Gauge.build(MetricNamePrefix + "last_polled_at", "Last Polled At").register()
     private lazy val requestCount = Counter.build(MetricNamePrefix + "request_count", "Request Count").labelNames(LabelNameRequest).register()
-    private lazy val requestDuration = Summary.build(MetricNamePrefix + "request_duration", "Request Duration").labelNames(LabelNameRequest).register()
+    private lazy val requestDuration =
+      Summary.build(MetricNamePrefix + "request_duration", "Request Duration").labelNames(LabelNameRequest).register()
 
     logger.info(s"Starting LevelSensePoller at interval of $PollingPeriod")
 
