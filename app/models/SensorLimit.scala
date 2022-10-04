@@ -2,15 +2,17 @@ package models
 
 import play.api.libs.json._
 
-case class SensorLimit(currentValue: Either[BigDecimal, String],
-                       id: String,
-                       isAlarm: Boolean,
-                       lcl: Either[BigDecimal, String],
-                       sensorDisplayName: String,
-                       sensorDisplayUnits: String,
-                       sensorId: String,
-                       sensorSlug: String,
-                       ucl: Either[BigDecimal, String])
+case class SensorLimit(
+    currentValue: Either[BigDecimal, String],
+    id: String,
+    isAlarm: Boolean,
+    lcl: Either[BigDecimal, String],
+    sensorDisplayName: String,
+    sensorDisplayUnits: String,
+    sensorId: String,
+    sensorSlug: String,
+    ucl: Either[BigDecimal, String]
+)
 
 object SensorLimit {
   implicit val sensorLimitReads: Reads[SensorLimit] = Json.reads

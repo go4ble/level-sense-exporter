@@ -13,10 +13,12 @@ import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logging}
 
 import javax.inject.{Inject, Singleton}
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
+@unused
 class LevelSensePollerModule extends SimpleModule(bind[LevelSensePollerModule.LevelSensePoller].toSelf.eagerly())
 
 object LevelSensePollerModule {
@@ -48,6 +50,7 @@ object LevelSensePollerModule {
     private lazy val requestCount = Counter.build(MetricNamePrefix + "request_count", "Request Count").labelNames(LabelNameRequest).register()
     private lazy val requestDuration =
       Summary.build(MetricNamePrefix + "request_duration", "Request Duration").labelNames(LabelNameRequest).register()
+    private lazy val errorCount = Counter.build(MetricNamePrefix + "error_count", "Error Count").register()
 
     logger.info(s"Starting LevelSensePoller at interval of $PollingPeriod")
 
@@ -55,13 +58,16 @@ object LevelSensePollerModule {
 
     actorSystem.scheduler.scheduleAtFixedRate(InitialDelay, PollingPeriod)(() =>
       Await.result(
-        for {
+        (for {
           sessionKey <- getSessionKey
           DeviceList(deviceList, _) <- getDeviceList(sessionKey)
           alarmConfigFutures = deviceList.map(device => getAlarmConfig(sessionKey, device.id))
           alarmConfigs <- Future.sequence(alarmConfigFutures)
           devices = alarmConfigs.map(_.device)
-        } yield collectDevices(devices),
+        } yield collectDevices(devices)).recover { exception =>
+          logger.error("error occurred while polling for devices", exception)
+          errorCount.inc()
+        },
         Timeout
       )
     )

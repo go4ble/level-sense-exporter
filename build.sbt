@@ -21,6 +21,8 @@ libraryDependencies ++= Seq(
 // Adds additional packages into conf/routes
 // play.sbt.routes.RoutesKeys.routesImport += "io.github.go4ble.binders._"
 
+(Compile / compile) := ((Compile / compile) dependsOn scalafmtCheckAll).value
+
 dockerBaseImage := "openjdk:11"
 dockerRepository := Some("ghcr.io/go4ble")
 dockerExposedPorts := Seq(9000)
